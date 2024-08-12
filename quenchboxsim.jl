@@ -32,7 +32,7 @@ x,y,z = X;
 include("utils_plots.jl")
 
 Δt = t[2]-t[1]
-psi = xspace(sol(t[40] + Δt/2), sim);
+psi = xspace(sol(t[40] + Δt), sim);
 
 
 t[41]
@@ -61,3 +61,36 @@ scatterClassifiedVortices(vorts_class, vorts_3d, X)
 plot_iso(psi, X, false)
 periodicPlotting(v_sort, X, 10)
 
+############ Interactive Plots ############
+
+using GLMakie
+
+
+psi = xspace(sol(t[end]), sim); # blank plot
+scene = plot_iso(psi, X)
+
+
+fig = scene.figure
+ax = scene.axis
+sl = Slider(fig[2, 1], range = t[1]:0.01:t[end], startvalue = t[1])
+
+function density2(psi)
+    density = abs2.(psi)
+    pmax = maximum(density)
+    density = density/pmax
+    return density
+end
+
+psi = lift(sl.value) do t
+    xspace(sol(t), sim)
+end
+
+d = lift(psi) do psi1
+    density2(psi1)
+end
+
+cbarPal= :plasma
+cmap = get(colorschemes[cbarPal], LinRange(0,1,100));
+cmap2 = [(cmap[i], 0.5) for i in 1:100];
+
+volume!(ax, X[1], X[2], X[3], d, algorithm = :iso, isovalue=0.65,isorange=0.075, colormap=cmap2, transparency=true)
