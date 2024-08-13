@@ -42,7 +42,7 @@ plot_iso(psi, X)
 
 # Parameters for vortex detection
 
-N_interp = 4;
+N_interp = 2;
 
 # This finds all vortex points intersecting the planes in 3 directions
 @time vorts_3d = find_vortex_points_3d(psi, X, N_interp) 
@@ -67,12 +67,18 @@ using GLMakie
 
 
 psi = xspace(sol(t[end]), sim); # blank plot
+
 scene = plot_iso(psi, X)
 
 
 fig = scene.figure
 ax = scene.axis
-sl = Slider(fig[2, 1], range = t[1]:0.01:t[end], startvalue = t[1])
+# sl = Slider(label = "Time", fig[2, 1], range = t[1]:0.01:t[end], startvalue = t[1])
+
+sl = SliderGrid(
+    fig[2, 1],
+    (label = "Time", range = t[1]:0.001:t[end], format = "{:.1f}s", startvalue = t[1]))
+
 
 function density2(psi)
     density = abs2.(psi)
@@ -81,7 +87,7 @@ function density2(psi)
     return density
 end
 
-psi = lift(sl.value) do t
+psi = lift(sl.sliders[1].value) do t
     xspace(sol(t), sim)
 end
 
@@ -94,3 +100,23 @@ cmap = get(colorschemes[cbarPal], LinRange(0,1,100));
 cmap2 = [(cmap[i], 0.5) for i in 1:100];
 
 volume!(ax, X[1], X[2], X[3], d, algorithm = :iso, isovalue=0.65,isorange=0.075, colormap=cmap2, transparency=true)
+
+vorts_3d = lift(psi) do psi1
+    find_vortex_points_3d(psi1, X, N_interp)
+end
+
+vorts_filt = lift(vorts_3d) do v
+    filter(a->vortInBounds(a, X), v)
+end
+vorts = lift(vorts_filt) do v
+    vorts3DMatrix(v)
+end
+
+
+points = lift(vorts) do v
+
+    Point3f.(v[:, 1], v[:, 2], v[:, 3])
+
+end
+
+meshscatter!(points, color="blue", markersize=0.05)
