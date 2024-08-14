@@ -1,5 +1,6 @@
 using FourierGPE
 using VortexDistributions
+using JLD2
 
 L=(16.,16.,16.);
 N=(64,64,64);
@@ -22,18 +23,32 @@ x,y,z = X;
 @pack_Sim! sim;
 
 ## Evolve in k-space
+# import FourierGPE
 @time sol = runsim(sim); # will take a few minutes to run.
 
-# To get the density, we need to transform back to position space
+####### Saving the solution #######
 
-## Transform back to position space
+
+@save "sol.jld2" sol
+
+@save "sim.jld2" sim
+
+# Test loading
+@load "sol.jld2" sol
+@load "sim.jld2" sim
 
 # Take a solution at some time t and transform it back to position space
 include("utils_plots.jl")
 
 Δt = t[2]-t[1]
-psi = xspace(sol(t[40] + Δt), sim);
+# psi = xspace(sol(t[40]), sim);
 
+
+psi = sol[40]
+sim
+psi = xspace(psi, sim);
+
+xspace!(psi, sim)
 
 t[41]
 # This will plot the isosurface of the density of the wavefunction at time t=40.
@@ -79,7 +94,6 @@ sl = SliderGrid(
     fig[2, 1],
     (label = "Time", range = t[1]:0.001:t[end], format = "{:.1f}s", startvalue = t[1]))
 
-
 function density2(psi)
     density = abs2.(psi)
     pmax = maximum(density)
@@ -112,11 +126,22 @@ vorts = lift(vorts_filt) do v
     vorts3DMatrix(v)
 end
 
-
 points = lift(vorts) do v
 
     Point3f.(v[:, 1], v[:, 2], v[:, 3])
 
 end
 
-meshscatter!(points, color="blue", markersize=0.05)
+function scatterVorts!(points)
+    meshscatter!(points, color="blue", markersize=0.05)
+end
+
+scatterVorts!(points)
+########## Add vortex classification ##########
+
+# vorts_class = connect_vortex_points_3d(vorts_3d, X, 0., N, true)
+
+vorts_class = lift(vorts_3d) do v
+    connect_vortex_points_3d(v, X, 0., N_interp, true)
+end
+

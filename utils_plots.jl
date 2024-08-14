@@ -51,6 +51,22 @@ function scatterClassifiedVortices(vortSets, vorts_3d, X, edges=false)
     end
 end
 
+function scatterClassifiedVorticesObservable!(vortSets_o, vorts_3d_o, X, edges=false)
+    vortSets = vortSets_o[]
+    vorts_3d = vorts_3d_o[]
+    
+    colors = distinguishable_colors(length(vortSets),[RGB(0.8103465454545455,0.2951044545454546,0.4575856363636363)],dropseed=true)
+    v_matrix = vcat(vorts_3d'...)[:,1:3]'
+
+    for i in 1:length(vortSets)
+        vi = v_matrix[:, collect(vortSets[i])]
+        if !edges
+            vi = vi[:, [vortInBounds(vi[:, i], X) for i = 1:length(vi[1, :])]] # Filters vortices that aren't on the grid
+        end
+        meshscatter!(vi[1,:],vi[2,:],vi[3,:],color=colors[i])
+    end
+end
+
 function vortInBounds(v, X)
     x = X[1]; y = X[2]; z = X[3];
     dx = x[2]-x[1]; dy = y[2]-y[1]; dz = z[2]-z[1];
