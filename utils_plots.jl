@@ -1,6 +1,6 @@
 using ColorSchemes, Colors, GLMakie
 
-function plot_iso(psi, X, heal_2=false)
+function plot_iso(psi, X, heal_2=false, visible=true)
     density = abs2.(psi)
     pmax = maximum(density)
     density = density/pmax
@@ -8,16 +8,24 @@ function plot_iso(psi, X, heal_2=false)
     cbarPal= :plasma
     cmap = get(colorschemes[cbarPal], LinRange(0,1,100))
     cmap2 = [(cmap[i], 0.5) for i in 1:100]
-
+    xlims = (X[1][1], X[1][end])
+    ylims = (X[2][1], X[2][end])
+    zlims = (X[3][1], X[3][end])
 
     if heal_2
         # scene = volume(X[1], X[2], X[3], density, algorithm = :iso, visible=visible, isovalue=0.65,isorange=0.075, colormap=cmap2, transparency=true)
-        scene = volume(X[1], X[2], X[3], density, algorithm = :iso, isovalue=0.65,isorange=0.075, colormap=cmap2, transparency=true)
+        scene = volume(xlims, ylims, zlims, density, algorithm = :iso, isovalue=0.25,isorange=0.075*2, colormap=cmap2, transparency=true, visible=visible)
     else
         # scene = volume(X[1], X[2], X[3], density, algorithm = :iso, visible=visible, colormap=cmap2, transparency=true, isovalue=0.1,isorange=0.075)
-        scene = volume(X[1], X[2], X[3], density, algorithm = :iso, colormap=cmap2, transparency=true)
+        # scene = volume(density, algorithm = :iso, colormap=cmap2, transparency=true)
+        scene = volume(xlims, ylims, zlims, density, algorithm = :iso, colormap=cmap2, transparency=true, visible=visible)
     end
-    screen = display(scene)
+
+    # scene = volume(X[1], X[2], X[3], density, algorithm = :iso, isovalue=0.9,isorange=0.075, colormap=cmap2, transparency=true)
+
+    # screen = display(scene)
+
+
     # resize!(screen, 2998, 1920)
     return scene
 end
@@ -26,30 +34,45 @@ function vorts3DMatrix(vorts)
     vorts = vcat(vorts'...)
 end
 
-function scatterVortsOnIso(ax, vorts, markersize=0.1)
+function scatterVortsOnIso(ax, vorts, markersize=0.1, transparency=false, alpha=1)
     vorts = vorts3DMatrix(vorts);
     
-    meshscatter!(ax, vorts[:, 1], vorts[:, 2], vorts[:, 3], color="blue", markersize=markersize)
+    meshscatter!(ax, vorts[:, 1], vorts[:, 2], vorts[:, 3], color="blue", markersize=markersize, transparency=transparency, alpha=alpha)
 end
 
-function scatterVortsOnIso!(vorts, markersize=0.1)
+function scatterVortsOnIso!(vorts; markersize=0.1, transparency=false, alpha=1, shininess=32.0, color=:blue)
     vorts = vorts3DMatrix(vorts);
     
-    meshscatter!(vorts[:, 1], vorts[:, 2], vorts[:, 3], color="blue", markersize=markersize)
+    meshscatter!(vorts[:, 1], vorts[:, 2], vorts[:, 3], color=color, markersize=markersize, transparency=transparency, alpha=alpha, shininess=shininess, specular=4)
 end
 
-function scatterClassifiedVortices(vortSets, vorts_3d, X, edges=false)
+function scatterClassifiedVortices(vortSets, vorts_3d, X, edges=false, markersize=0.1)
     colors = distinguishable_colors(length(vortSets),[RGB(0.8103465454545455,0.2951044545454546,0.4575856363636363)],dropseed=true)
     v_matrix = vcat(vorts_3d'...)[:,1:3]'
 
     for i in 1:length(vortSets)
+        print("i")
         vi = v_matrix[:, collect(vortSets[i])]
         if !edges
             vi = vi[:, [vortInBounds(vi[:, i], X) for i = 1:length(vi[1, :])]] # Filters vortices that aren't on the grid
         end
-        meshscatter!(vi[1,:],vi[2,:],vi[3,:],color=colors[i])
+        meshscatter!(vi[1,:],vi[2,:],vi[3,:],color=colors[i], markersize=markersize)
     end
 end
+
+# function scatterClassifiedVortices(vortSets, vorts_3d, X, color, edges=false, markersize=0.1)
+#     # colors = distinguishable_colors(length(vortSets),[RGB(0.8103465454545455,0.2951044545454546,0.4575856363636363)],dropseed=true)
+#     v_matrix = vcat(vorts_3d'...)[:,1:3]'
+
+#     for i in 1:length(vortSets)
+#         print("i")
+#         vi = v_matrix[:, collect(vortSets[i])]
+#         if !edges
+#             vi = vi[:, [vortInBounds(vi[:, i], X) for i = 1:length(vi[1, :])]] # Filters vortices that aren't on the grid
+#         end
+#         meshscatter!(vi[1,:],vi[2,:],vi[3,:],color=color, markersize=markersize)
+#     end
+# end
 
 function scatterClassifiedVorticesObservable!(vortSets_o, vorts_3d_o, X, edges=false)
     vortSets = vortSets_o[]
@@ -131,4 +154,3 @@ function euclid(v1, v2)
     sum = sqrt(sum)
     return sum
 end
-

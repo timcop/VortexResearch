@@ -27,7 +27,7 @@ x,y,z = X;
 @time sol = runsim(sim); # will take a few minutes to run.
 
 # Mutate the solution to xspace before saving to jld2
-for i in 1:length(sol)
+for i in eachindex(sol)
     sol[i] = xspace(sol[i], sim)
 end
 

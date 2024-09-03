@@ -24,3 +24,7 @@ docs/site/
 Manifest.toml
 
 *.jld2
+
+.DS_Store
+
+3DTurbulence/*
