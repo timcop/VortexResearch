@@ -49,6 +49,7 @@ mutable struct VortexPlot
     toggles::Vector{Toggle}
     toggle_labels::Vector{Label}
     sliders::Vector{Slider}
+    interp_depth::Observable
 end
 
 function VortexPlot(sim_vars)
@@ -59,15 +60,38 @@ function VortexPlot(sim_vars)
     toggle1 = Toggle(fig)
     toggle2 = Toggle(fig)
     toggle3 = Toggle(fig)
+    toggle4 = Toggle(fig)
     label1 = Label(fig, "Vorts Unclass")
     label2 = Label(fig, "Vorts Class")
     label3 = Label(fig, "Filter OOB Vorts")
+    label4 = Label(fig, "Show Iso")
 
     sl = SliderGrid(fig[2, 1], (label = "Time", range = t[1]:0.001:t[end], format = "{:.1f}s", startvalue = t[1]))
 
-    fig[1, 2] = grid!(hcat([toggle1, toggle2, toggle3], [label1, label2, label3]), tellheight = false)
+    
+    menu_interp = Menu(
+        fig, 
+        options = collect(1:16),
+        default = 1
+        )
+    menu_label = Label(fig, "Interpolation Depth", width = nothing)
 
-    return VortexPlot(fig, [toggle1, toggle2, toggle3], [label1, label2, label3], [sl.sliders[1]])
+    ϵ = lift(menu_interp.selection) do n
+        round(epsilonBall2(sim_vars.X, n, 0.); sigdigits=4)
+    end
+
+    
+    # epsilon_label = Label(fig, @lift("ε = $(round((ϵ[]); sigdigits=3))"))
+    epsilon_label = Label(fig, @lift("ε = $($ϵ) ξ"))
+    menu_grid = GridLayout()
+    menu_grid[1, 1] = vgrid!(menu_label, menu_interp, epsilon_label, tellheight = false)
+    menu_grid[2, 1] = grid!(hcat([toggle1, toggle2, toggle3, toggle4], [label1, label2, label3, label4]), tellheight = false)
+
+    # menu_grid[3, 1] = epsilon_label
+    # rowgap!(menu_grid, 1, Relative(-0.5))
+    fig[1, 2] = menu_grid
+
+    return VortexPlot(fig, [toggle1, toggle2, toggle3, toggle4], [label1, label2, label3, label4], [sl.sliders[1]], menu_interp.selection)
 end
 
 
@@ -90,6 +114,7 @@ function VortexPlotObservables(sim_vars, vortex_plot)
     t = sim_vars.t
     sol = sim_vars.sol
     sl = vortex_plot.sliders[1]
+    interp_depth = vortex_plot.interp_depth
 
     psi = lift(sl.value) do t
         sim_vars.sol(t)
@@ -99,9 +124,9 @@ function VortexPlotObservables(sim_vars, vortex_plot)
         density2(psi1)
     end
 
-    vorts_unclass = VortsUnclassObservable(sim_vars, vortex_plot, psi)
+    vorts_unclass = VortsUnclassObservable(sim_vars, vortex_plot, psi, interp_depth)
 
-    vorts_class, vorts_class_colors = VortsClassObservable(sim_vars, vortex_plot, psi)
+    vorts_class, vorts_class_colors = VortsClassObservable(sim_vars, vortex_plot, psi, interp_depth)
 
     return VortexPlotObservables(psi, density, vorts_unclass, vorts_class, vorts_class_colors)
 end
@@ -121,6 +146,8 @@ function PlotVortexPlotObservables(sim_vars, vortex_plot, vortex_plot_observable
     vorts_class = vortex_plot_observables.vorts_class
     vorts_class_colors = vortex_plot_observables.vorts_class_colors
 
+    show_iso = vortex_plot.toggles[4].active
+
     volume!(
         fig[1,1], 
         (x[1], x[end]), 
@@ -131,7 +158,9 @@ function PlotVortexPlotObservables(sim_vars, vortex_plot, vortex_plot_observable
         isovalue=0.65,
         isorange=0.075, 
         colormap=cmap2, 
-        transparency=true)
+        transparency=true,
+        visible=show_iso
+        )
 
     meshscatter!(fig[1, 1], vorts_unclass, color=:blue, markersize=0.05)
     meshscatter!(fig[1, 1], vorts_class, color=vorts_class_colors, markersize=0.05)
@@ -151,15 +180,15 @@ function vortex_points(active, psi, X, N_interp)
     end
 end
 
-function VortsUnclassObservable(sim_vars, vortex_plot, psi)
-    N_interp = 2
+function VortsUnclassObservable(sim_vars, vortex_plot, psi, interp_depth)
+
     vorts_unclass_toggle = vortex_plot.toggles[1]
     vorts_oob_toggle = vortex_plot.toggles[3]
     slider = vortex_plot.sliders[1]
     X = sim_vars.X
 
-    v_points = lift(vorts_unclass_toggle.active, slider.value) do tog, sl
-        vortex_points(tog, psi[], X, N_interp)
+    v_points = lift(vorts_unclass_toggle.active, slider.value, interp_depth) do tog, sl, intr
+        vortex_points(tog, psi[], X, intr)
     end
 
     v_points_filt = lift(vorts_oob_toggle.active, v_points) do tog, v
@@ -202,24 +231,23 @@ function arrange_vort_class_for_plotting(vorts_3d, vorts_class)
     return v_plotting
 end
 
-function VortsClassObservable(sim_vars, vortex_plot, psi)
+function VortsClassObservable(sim_vars, vortex_plot, psi, interp_depth)
     vorts_class_toggle = vortex_plot.toggles[2]
     vorts_oob_toggle = vortex_plot.toggles[3]
     slider = vortex_plot.sliders[1]
     X = sim_vars.X
 
-    N_interp = 2
 
-    v_points_for_class = lift(vorts_class_toggle.active, slider.value) do tog, sl
+    v_points_for_class = lift(vorts_class_toggle.active, slider.value, interp_depth, vorts_oob_toggle.active) do tog, sl, intr, tog2
         if tog
-            find_vortex_points_3d(psi[], X, N_interp)
+            find_vortex_points_3d(psi[], X, intr)
         else
             []
         end
     end
 
     v_points_class_2 = lift(v_points_for_class) do v
-        connect_vortex_points_3d(v, X, N_interp, epsilonBall2(X, N_interp, 0.1),  true)
+        connect_vortex_points_3d(v, X, interp_depth[], epsilonBall2(X, interp_depth[], 0.1),  true)
     end
 
     v_points_class_2_array = lift(v_points_class_2) do v
