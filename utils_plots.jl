@@ -1,6 +1,6 @@
 using ColorSchemes, Colors, GLMakie
 
-function plot_iso(psi, X, heal_2=false, visible=true)
+function plot_iso(psi, X; heal_2=false, visible=true)
     density = abs2.(psi)
     pmax = maximum(density)
     density = density/pmax
@@ -153,4 +153,97 @@ function euclid(v1, v2)
     end
     sum = sqrt(sum)
     return sum
+end
+
+function plot_detection_boxes(vorts_x, vorts_y, vorts_z)
+    squares_x = [Point3f[(v[1], v[2]-0.125, v[3]-0.125), (v[1], v[2]-0.125, v[3]+0.125), (v[1], v[2]+0.125, v[3]+0.125), (v[1], v[2]+0.125, v[3]-0.125)] for v in vorts_x]
+    squares_y = [Point3f[(v[1]-0.125, v[2], v[3]-0.125), (v[1]-0.125, v[2], v[3]+0.125), (v[1]+0.125, v[2], v[3]+0.125), (v[1]+0.125, v[2], v[3]-0.125)] for v in vorts_y]
+    squares_z = [Point3f[(v[1]-0.125, v[2]-0.125, v[3]), (v[1]-0.125, v[2]+0.125, v[3]), (v[1]+0.125, v[2]+0.125, v[3]), (v[1]+0.125, v[2]-0.125, v[3])] for v in vorts_z]
+
+    squares_x_f11 = [Point3f[(v[1]+0.25, v[2]-0.125, v[3]-0.125), (v[1]+0.25, v[2]-0.125, v[3]+0.125), (v[1]+0.25, v[2]+0.125, v[3]+0.125), (v[1]+0.25, v[2]+0.125, v[3]-0.125)] for v in vorts_x] # The face of a cube which is just + dx in the x direction
+    squares_x_f12 = [Point3f[(v[1], v[2]-0.125, v[3]-0.125), (v[1], v[2]-0.125, v[3]+0.125), (v[1]+0.25, v[2]-0.125, v[3]+0.125), (v[1]+0.25, v[2]-0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f13 = [Point3f[(v[1], v[2]+0.125, v[3]-0.125), (v[1], v[2]+0.125, v[3]+0.125), (v[1]+0.25, v[2]+0.125, v[3]+0.125), (v[1]+0.25, v[2]+0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f14 = [Point3f[(v[1], v[2]-0.125, v[3]-0.125), (v[1], v[2]+0.125, v[3]-0.125), (v[1]+0.25, v[2]+0.125, v[3]-0.125), (v[1]+0.25, v[2]-0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f15 = [Point3f[(v[1], v[2]-0.125, v[3]+0.125), (v[1], v[2]+0.125, v[3]+0.125), (v[1]+0.25, v[2]+0.125, v[3]+0.125), (v[1]+0.25, v[2]-0.125, v[3]+0.125)] for v in vorts_x]
+
+    # The face of a cube in the negative dx direction
+    squares_x_f21 = [Point3f[(v[1]-0.25, v[2]-0.125, v[3]-0.125), (v[1]-0.25, v[2]-0.125, v[3]+0.125), (v[1]-0.25, v[2]+0.125, v[3]+0.125), (v[1]-0.25, v[2]+0.125, v[3]-0.125)] for v in vorts_x]
+    squares_x_f22 = [Point3f[(v[1], v[2]-0.125, v[3]-0.125), (v[1], v[2]-0.125, v[3]+0.125), (v[1]-0.25, v[2]-0.125, v[3]+0.125), (v[1]-0.25, v[2]-0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f23 = [Point3f[(v[1], v[2]+0.125, v[3]-0.125), (v[1], v[2]+0.125, v[3]+0.125), (v[1]-0.25, v[2]+0.125, v[3]+0.125), (v[1]-0.25, v[2]+0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f24 = [Point3f[(v[1], v[2]-0.125, v[3]-0.125), (v[1], v[2]+0.125, v[3]-0.125), (v[1]-0.25, v[2]+0.125, v[3]-0.125), (v[1]-0.25, v[2]-0.125, v[3]-0.125)] for v in vorts_x] 
+    squares_x_f25 = [Point3f[(v[1], v[2]-0.125, v[3]+0.125), (v[1], v[2]+0.125, v[3]+0.125), (v[1]-0.25, v[2]+0.125, v[3]+0.125), (v[1]-0.25, v[2]-0.125, v[3]+0.125)] for v in vorts_x]
+
+
+    for s in squares_x
+        mesh!(s, [1 2 3; 3 4 1], color = :red)
+    end
+
+    for s in squares_y
+        mesh!(s, [1 2 3; 3 4 1], color = :red)
+    end
+
+    for s in squares_z
+        mesh!(s, [1 2 3; 3 4 1], color = :red)
+    end
+
+    for s in squares_x_f11
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f12
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f13
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f14
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f15
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f21
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f22
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f23
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f24
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+
+    for s in squares_x_f25
+        mesh!(s, [1 2 3; 3 4 1], color = :red, alpha=0.4)
+    end
+end
+
+function plot_vortex_lines(vorts, vort_lines, vort_loops, vort_rings; linewidth=5)
+    colors = distinguishable_colors(length(vort_lines) + length(vort_loops) + length(vort_rings));
+    # plot_iso(psi, sim.X, false, false)
+    for i in eachindex(vort_lines)
+        v_sort = vorts[vort_lines[i]]
+        lines!([v[1] for v in v_sort], [v[2] for v in v_sort], [v[3] for v in v_sort], color=colors[i], linewidth=linewidth)
+    end
+
+    # colors = distinguishable_colors(length(vorts_loops));
+    # plot_iso(psi, sim.X, false, false)
+    for i in eachindex(vort_loops)
+        v_sort = vorts[vort_loops[i]]
+        lines!([v[1] for v in v_sort], [v[2] for v in v_sort], [v[3] for v in v_sort], color=colors[length(vort_lines) + i], linewidth=linewidth)
+    end
+
+    for i in eachindex(vort_rings)
+        v_sort = vorts[vort_rings[i]]
+        lines!([v[1] for v in v_sort], [v[2] for v in v_sort], [v[3] for v in v_sort], color=colors[length(vort_lines) + length(vort_loops) + i], linewidth=linewidth)
+    end
 end

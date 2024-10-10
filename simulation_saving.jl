@@ -9,6 +9,7 @@ sim = Sim(L,N);
 
 ## Initialse sim
 # parameters
+
 μ = 25.0;
 γ = 0.05;
 tf = 4/γ;
@@ -31,6 +32,8 @@ for i in eachindex(sol)
     sol[i] = xspace(sol[i], sim)
 end
 
-@save "sol.jld2" sol
-@save "sim.jld2" sim
+@save "sol2.jld2" sol
+@save "sim2.jld2" sim
+
+plot_iso(sol(34.8), sim.X)
 

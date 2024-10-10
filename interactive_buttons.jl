@@ -12,7 +12,7 @@ includet("utils.jl")
 ## Load simulation data
 
 
-sim_vars = SimulationVariables("sol.jld2", "sim.jld2");
+sim_vars = SimulationVariables("sol2.jld2", "sim2.jld2");
 vortex_plot = VortexPlot(sim_vars);
 vortex_plot_observables = VortexPlotObservables(sim_vars, vortex_plot);
 
